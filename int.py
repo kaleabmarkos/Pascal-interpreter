@@ -1,4 +1,4 @@
-INTEGER, PLUS, EOF, SUB = 'INTEGER', 'PLUS', 'EOF', 'SUB'
+INTEGER, PLUS, EOF, SUB, MUL, DIV = 'INTEGER', 'PLUS', 'EOF', 'SUB','MUL', 'DIV'
 '''
 EOF = end of file
 '''
@@ -38,13 +38,17 @@ class Interpreter:
             return token
         
         if cur_char == '+':
-            token = Token(PLUS, cur_char)
             self.pos+=1
-            return token
-        if cur_char == '-':
-            token = Token(SUB, cur_char)
+            return Token(PLUS, cur_char)
+        elif cur_char == '-':
             self.pos+=1
-            return token
+            return Token(SUB, cur_char)
+        elif cur_char == '*':
+            self.pos+=1
+            return Token(MUL, cur_char)
+        elif cur_char == '/' or cur_char =='//':
+            self.pos+=1
+            return Token(DIV, cur_char)
         self.error()
 
     def eat(self, token_type):
@@ -55,23 +59,24 @@ class Interpreter:
     
     def expr(self):
         self.cur_token = self.get_next_token()
-
-        left = self.cur_token
+        result = self.cur_token.value
         self.eat(INTEGER)
 
-        op = self.cur_token
-        if op.token_type == PLUS:
-            self.eat(PLUS)
-        else:
-            self.eat(SUB)
-    
-        right = self.cur_token
-        self.eat(INTEGER)
-        result=0
-        if op.token_type == SUB:
-            result = left.value - right.value
-        else:
-            result = left.value + right.value
+        while self.cur_token.token_type in [PLUS, SUB, MUL, DIV]:
+            op = self.cur_token
+            if op.token_type == PLUS:
+                self.eat(PLUS)
+                result += self.cur_token.value
+            elif op.token_type == SUB:
+                self.eat(SUB)
+                result -= self.cur_token.value
+            elif op.token_type == MUL:
+                self.eat(MUL)
+                result *= self.cur_token.value
+            else:
+                self.eat(DIV)
+                result //= self.cur_token.value
+            self.eat(INTEGER)
         return result
     
 
