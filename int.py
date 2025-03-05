@@ -10,73 +10,107 @@ class Token:
 
     def __str__(self):
         return f"{self.token_type} with value of {self.value}"
-
-class Interpreter:
+    
+class Lexer:
     def __init__(self, text):
         self.text = text
-        self.pos=0
-        self.cur_token = None
+        self.pos = 0
+        self.current_char = self.text[self.pos]
+
+    def Error(self):
+        raise Exception("Invalid character")
+    
+    def advance(self):
+        self.pos+=1
+        if self.pos >= len(self.text):
+            self.current_char = None
+        else:
+            self.current_char = self.text[self.pos]
+        
+    def skip_white_space(self):
+        while self.current_char is not None and self.current_char.isspace():
+            self.advance()
+    
+    def integer(self):
+        result = ''
+        while self.current_char is not None and self.current_char.isdigit():
+            result+=self.current_char
+            self.advance()
+        return int(result)
+    
+    def get_next_token(self):
+        while self.current_char is not None:
+            if self.current_char.isspace():
+                self.skip_white_space()
+                continue
+            
+            if self.current_char.isdigit():
+                return Token(INTEGER, self.integer())
+            if self.current_char == '+':
+                self.advance()
+                return Token(PLUS,'+')
+            if self.current_char == '-':
+                self.advance()
+                return Token(SUB,'-')
+            if self.current_char == '*':
+                self.advance()
+                return Token(MUL,'*')
+            if self.current_char == '/':
+                self.advance()
+                return Token(DIV,'/')
+            
+            self.Error()
+        return Token(EOF, None)
+
+        
+
+class Interpreter:
+    def __init__(self, lexer):
+        self.lexer=lexer
+        self.cur_token = self.lexer.get_next_token()
         
     def error(self):
         raise Exception("Error parsing input")
 
-    def get_next_token(self):
-        text = self.text
-        if self.pos < len(text)-1 and text[self.pos] ==' ':
-            self.pos+=1
-        if self.pos >= len(text):
-            return Token(EOF, None)
-        
-        cur_char = text[self.pos]
 
-        if cur_char.isdigit():
-            num_str = ''
-            while self.pos < len(text) and text[self.pos].isdigit():
-                num_str+=text[self.pos]
-                self.pos+=1
-            token = Token(INTEGER, int(num_str))
-            return token
-        
-        if cur_char == '+':
-            self.pos+=1
-            return Token(PLUS, cur_char)
-        elif cur_char == '-':
-            self.pos+=1
-            return Token(SUB, cur_char)
-        elif cur_char == '*':
-            self.pos+=1
-            return Token(MUL, cur_char)
-        elif cur_char == '/' or cur_char =='//':
-            self.pos+=1
-            return Token(DIV, cur_char)
-        self.error()
 
     def eat(self, token_type):
         if self.cur_token.token_type == token_type:
-            self.cur_token = self.get_next_token()
+            self.cur_token = self.lexer.get_next_token()
         else:
             self.error()
     
-    def expr(self):
-        self.cur_token = self.get_next_token()
-        result = self.cur_token.value
+    def factor(self):
+        token = self.cur_token
         self.eat(INTEGER)
+        return token.value
 
-        while self.cur_token.token_type in [PLUS, SUB, MUL, DIV]:
-            op = self.cur_token
-            if op.token_type == PLUS:
-                self.eat(PLUS)
-                result += self.cur_token.value
-            elif op.token_type == SUB:
-                self.eat(SUB)
-                result -= self.cur_token.value
-            elif op.token_type == MUL:
+    def terms(self):
+        result = self.factor()
+
+        while self.cur_token.token_type in [MUL, DIV]:
+            if self.cur_token.token_type == MUL:
                 self.eat(MUL)
-                result *= self.cur_token.value
-            else:
+                result*=self.factor()
+            elif self.cur_token.token_type == DIV:
                 self.eat(DIV)
-                result //= self.cur_token.value
-            self.eat(INTEGER)
+                result/=self.factor()
+        return result
+        
+            
+
+    
+    def expr(self):
+        result = self.terms()
+
+        while self.cur_token.token_type in [PLUS, SUB]:
+            token = self.cur_token
+            if token.token_type == PLUS:
+                self.eat(PLUS)
+                result+=self.terms()
+            elif token.token_type == SUB:
+                self.eat(SUB)
+                result-=self.terms()
         return result
     
 
@@ -88,7 +122,8 @@ def main():
             break
         if not text:
             continue
-        Interp=Interpreter(text)
+        lex = Lexer(text)
+        Interp=Interpreter(lex)
         result=Interp.expr()
         return result
 
