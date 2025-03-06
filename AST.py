@@ -61,8 +61,6 @@ class Parser:
         return node
         
             
-
-    
     def expr(self):
 
         node = self.term()
@@ -79,6 +77,7 @@ class Parser:
 
     def parse(self):
         return self.expr()
+    
 
 '''
 INTERPRETER
@@ -114,6 +113,28 @@ class Interpreter(NodeVisitor):
     def interpret(self):
         tree = self.parser.parse()
         return self.visit(tree)
+    
+
+class Translator(NodeVisitor):
+    def __init__(self, tree):
+        self.tree=tree
+    
+    def BinaryOP_visit(self,node):
+        left_val = self.visit(node.left)
+        right_val = self.visit(node.right)
+        return "( {left} {right} {op})".format(
+            left=left_val,
+            right = right_val,
+            op = node.op.value,
+            )
+    
+    def Num_visit(self,node):
+        return node.value
+
+    def translate(self):
+        return self.visit(self.tree)
+
+       
 
 def main():
     while True:
@@ -126,14 +147,11 @@ def main():
             break
         if not text:
             continue
-        inter = Lexer(text)
-        parse = Parser(inter)
-        result = Interpreter(parse)
-        res = result.interpret()
-        print(inter)
-        print(parse)
-        print(res)
-        print(result)
+        lexer = Lexer(text)
+        parser = Parser(lexer)
+        tree = parser.parse()
+        x = Translator(tree)
+        print(x.translate())
 
 if __name__ == '__main__':
     main()
