@@ -1,5 +1,21 @@
 from int import INTEGER, PLUS, EOF, SUB, MUL, DIV, LBRACK, RBRACK, Lexer, Token
 
+'''
+PARSER
+'''
+class AST:
+    pass
+
+class BinaryOP(AST):
+    def __init__(self, left, op, right):
+        self.left = left
+        self.op = self.token = op
+        self.right=right
+
+class Num(AST):
+    def __init__(self, token):
+        self.token = token
+        self.value = token.value
 
 class Parser:
     def __init__(self, lexer):
@@ -25,7 +41,7 @@ class Parser:
         token = self.cur_token
         if token.token_type == INTEGER:
             self.eat(INTEGER)
-            return token.value
+            return Num(token)
         elif token.token_type == LBRACK:
             self.eat(LBRACK)
             result = self.expr()
@@ -64,19 +80,9 @@ class Parser:
     def parse(self):
         return self.expr()
 
-class AST:
-    pass
-
-class BinaryOP(AST):
-    def __init__(self, left, op, right):
-        self.left = left
-        self.op = self.token = op
-        self.right=right
-    
-class NUM(AST):
-    def __init__(self, token):
-        self.token = token
-        self.value = token.value
+'''
+INTERPRETER
+'''
 
 #Class for the Visitors Pattern : to separate the object and algorithm and could 
 #therefore add new operations without chcannging the existing object structure
@@ -86,26 +92,48 @@ class NodeVisitor:
         visitor = getattr(self, met_name, self.generic_visit)
         return visitor(node)
     def generic_visit(self, node):
-        raise Exception ("No visit method found".format(type(node).__name__))
+        raise Exception (f"No visit method found {format(type(node).__name__)} ")
 
 class Interpreter(NodeVisitor):
     def __init__(self,parser):
         self.parser=parser
     
-    def BinaryOp_visit(self, node):
-        if node.op.type == PLUS:
+    def BinaryOP_visit(self, node):
+        if node.op.token_type == PLUS:
             return self.visit(node.left) + self.visit(node.right)
-        elif node.op.type == SUB:
+        elif node.op.token_type == SUB:
             return self.visit(node.left) - self.visit(node.right)
-        elif node.op.type == MUL:
+        elif node.op.token_type == MUL:
             return self.visit(node.left) * self.visit(node.right)
         else:
             return self.visit(node.left) / self.visit(node.right)
     
-    def num_visit(self, node):
+    def Num_visit(self, node):
         return node.value
 
     def interpret(self):
         tree = self.parser.parse()
         return self.visit(tree)
 
+def main():
+    while True:
+        try:
+            try:
+                text = input("calc:> ")
+            except NameError:
+                text = input("Calc;> ")
+        except EOFError:
+            break
+        if not text:
+            continue
+        inter = Lexer(text)
+        parse = Parser(inter)
+        result = Interpreter(parse)
+        res = result.interpret()
+        print(inter)
+        print(parse)
+        print(res)
+        print(result)
+
+if __name__ == '__main__':
+    main()
