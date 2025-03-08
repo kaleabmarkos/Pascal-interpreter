@@ -39,6 +39,14 @@ class Parser:
     
     def factor(self):
         token = self.cur_token
+        if token.token_type == PLUS:
+            self.eat(PLUS)
+            node = UniaryOP(token, self.factor())
+            return node
+        if token.token_type == SUB:
+            self.eat(SUB)
+            node = UniaryOP(token, self.factor())
+            return node
         if token.token_type == INTEGER:
             self.eat(INTEGER)
             return Num(token)
@@ -84,14 +92,14 @@ INTERPRETER
 '''
 
 #Class for the Visitors Pattern : to separate the object and algorithm and could 
-#therefore add new operations without chcannging the existing object structure
+#therefore add new operations without changing the existing object structure
 class NodeVisitor:
     def visit(self, node):
         met_name = type(node).__name__ + '_visit'
         visitor = getattr(self, met_name, self.generic_visit)
         return visitor(node)
     def generic_visit(self, node):
-        raise Exception (f"No visit method found {format(type(node).__name__)} ")
+        raise Exception (f"No method called {format(type(node).__name__)} found")
 
 class Interpreter(NodeVisitor):
     def __init__(self,parser):
@@ -109,6 +117,13 @@ class Interpreter(NodeVisitor):
     
     def Num_visit(self, node):
         return node.value
+    
+    def UniaryOP_visit(self, node):
+        op = node.op.token_type
+        if op==PLUS:
+            return +self.visit(node.expr)
+        if op==SUB:
+            return -self.visit(node.expr)
 
     def interpret(self):
         tree = self.parser.parse()
@@ -133,6 +148,14 @@ class Translator(NodeVisitor):
 
     def translate(self):
         return self.visit(self.tree)
+
+class UniaryOP(AST):
+    def __init__(self, op, expr):
+        self.token = self.op = op
+        self.expr = expr
+    
+
+        
 
        
 
